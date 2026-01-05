@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "@google/genai": "^1.34.0",
+    "@google/generative-ai": "^0.24.1",
     "@react-oauth/google": "0.12.1",
+    "@vercel/node": "^5.5.16",
     "axios": "1.6.7",
     "lucide-react": "^0.562.0",
     "react": "^19.2.3",
