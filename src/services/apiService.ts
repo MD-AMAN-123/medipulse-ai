@@ -55,5 +55,17 @@ export const apiService = {
             console.error('Failed to update appointment:', error);
             throw error;
         }
+    },
+
+    async deleteAppointment(id: string): Promise<void> {
+        try {
+            await axios.post(API_BASE, {
+                appointmentId: id,
+                action: 'delete'
+            });
+        } catch (error) {
+            console.error('Failed to delete appointment:', error);
+            throw error;
+        }
     }
 };

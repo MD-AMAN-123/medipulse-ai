@@ -242,23 +242,8 @@ const App: React.FC = () => {
     }
   }, [isDarkMode]);
 
-  useEffect(() => {
-    // Broad sync for general data changes, protected by isSyncingRef
-    const performSync = async () => {
-      if (!hasLoadedFromServer || isSyncingRef.current) return;
-
-      isSyncingRef.current = true;
-      try {
-        await apiService.syncData({ appointments, doctors });
-      } catch (e) {
-        console.error("Auto-sync failed", e);
-      } finally {
-        isSyncingRef.current = false;
-      }
-    };
-
-    performSync();
-  }, [appointments, doctors, hasLoadedFromServer]);
+  // Removed bulk auto-sync to prevents Race Conditions and Lost Updates.
+  // Changes should be pushed via individual action methods (book, update, delete).
 
 
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
@@ -479,8 +464,17 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDeleteAppointment = (id: string) => {
+  const handleDeleteAppointment = async (id: string) => {
+    // Update local state
     setAppointments(prev => prev.filter(apt => apt.id !== id));
+
+    // Sync to cloud
+    try {
+      await apiService.deleteAppointment(id);
+    } catch (e) {
+      console.error("Failed to delete appointment on server", e);
+    }
+
     setNotifications(prev => [{
       id: Date.now().toString(),
       title: 'Appointment Deleted',
@@ -528,6 +522,13 @@ const App: React.FC = () => {
   };
 
   const renderContent = () => {
+    // Shared filtering logic for non-admins to ensure privacy
+    const filteredAppointments = appointments.filter(a =>
+      isAdmin ? true :
+        (user?.email && user.email !== 'guest@medipulse.ai') ? a.patientEmail === user.email :
+          a.patientMobile === user?.mobile
+    );
+
     switch (activeTab) {
       case AppView.DASHBOARD:
         return (
@@ -535,11 +536,7 @@ const App: React.FC = () => {
             userName={user?.name || user?.given_name || "User"}
             userImage={user?.picture}
             metrics={metrics}
-            appointments={appointments.filter(a =>
-              user?.role === 'admin' ? true :
-                (user?.email && user.email !== 'guest@medipulse.ai') ? a.patientEmail === user.email :
-                  a.patientMobile === user?.mobile
-            )}
+            appointments={filteredAppointments}
             notifications={notifications}
 
             onMarkNotificationRead={handleMarkNotificationRead}
@@ -558,10 +555,7 @@ const App: React.FC = () => {
           <LiveAssistant
             userName={user?.name || "User"}
             metrics={metrics}
-            appointments={isAdmin ? appointments : appointments.filter(a =>
-              (user?.email && user.email !== 'guest@medipulse.ai') ? a.patientEmail === user.email :
-                a.patientMobile === user?.mobile
-            )}
+            appointments={filteredAppointments}
             onUpdateProfile={handleAIUpdateProfile}
 
             onBookAppointment={handleAIBookAppointment}
@@ -595,7 +589,7 @@ const App: React.FC = () => {
           <Dashboard
             userName={user?.name}
             metrics={metrics}
-            appointments={appointments}
+            appointments={filteredAppointments}
             notifications={notifications}
             onMarkNotificationRead={handleMarkNotificationRead}
             onLogVitals={() => setIsVitalsModalOpen(true)}
@@ -798,26 +792,7 @@ const App: React.FC = () => {
           </div>
         );
       default:
-        return (
-          <Dashboard
-            userName={user?.name || user?.given_name || "User"}
-            userImage={user?.picture}
-            metrics={metrics}
-            appointments={appointments.filter(a =>
-              user?.role === 'admin' ? true :
-                (user?.email && user.email !== 'guest@medipulse.ai') ? a.patientEmail === user.email :
-                  a.patientMobile === user?.mobile
-            )}
-            notifications={notifications}
-            onMarkNotificationRead={handleMarkNotificationRead}
-            onLogVitals={() => setIsVitalsModalOpen(true)}
-            isPremium={isPremium}
-            onUpgrade={() => setIsUpgradeConfirmOpen(true)}
-            isDarkMode={isDarkMode}
-            toggleTheme={toggleTheme}
-            isAdmin={isAdmin}
-          />
-        );
+        return null;
     }
   };
 

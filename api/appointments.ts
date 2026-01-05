@@ -143,13 +143,18 @@ export default async function handler(
             return res.status(200).json({ success: true, appointments: appointmentsStore });
         }
 
-        if (appointments && Array.isArray(appointments)) {
-            writeData(APPOINTMENTS_FILE, appointments);
+        if (action === 'delete' && req.body.appointmentId) {
+            const id = req.body.appointmentId;
+            appointmentsStore = appointmentsStore.filter((a: any) => a.id !== id);
+            writeData(APPOINTMENTS_FILE, appointmentsStore);
+            return res.status(200).json({ success: true, appointments: appointmentsStore });
         }
+
+        // Broad sync for doctors only (appointments sync removed to prevent race conditions)
         if (doctors && Array.isArray(doctors)) {
             writeData(DOCTORS_FILE, doctors);
         }
-        return res.status(200).json({ success: true, message: "Data synced successfully" });
+        return res.status(200).json({ success: true, message: "Action completed successfully" });
     }
 
     return res.status(405).json({ error: "Method not allowed" });
