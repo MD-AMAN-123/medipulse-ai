@@ -84,7 +84,21 @@ export default async function handler(
     }
 
     if (req.method === 'POST') {
-        const { appointments, doctors } = req.body;
+        const { appointments, doctors, appointment, action } = req.body;
+
+        if (action === 'add' && appointment) {
+            // Check if appointment already exists to prevent duplicates
+            const exists = appointmentsStore.some(a => a.id === appointment.id);
+            if (!exists) {
+                appointmentsStore = [appointment, ...appointmentsStore];
+            }
+            return res.status(200).json({
+                success: true,
+                message: "Appointment added successfully",
+                appointments: appointmentsStore
+            });
+        }
+
         if (appointments && Array.isArray(appointments)) {
             appointmentsStore = appointments;
         }

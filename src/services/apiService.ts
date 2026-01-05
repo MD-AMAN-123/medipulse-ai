@@ -31,5 +31,17 @@ export const apiService = {
             console.error('Failed to sync data:', error);
             throw error;
         }
+    },
+
+    async bookAppointment(appointment: Appointment): Promise<void> {
+        try {
+            await axios.post(API_BASE, {
+                appointment,
+                action: 'add'
+            });
+        } catch (error) {
+            console.error('Failed to book appointment:', error);
+            throw error;
+        }
     }
 };

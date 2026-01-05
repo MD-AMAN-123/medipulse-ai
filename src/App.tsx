@@ -258,12 +258,34 @@ const App: React.FC = () => {
 
   // Fetch from server on Admin Login or Periodically
   useEffect(() => {
-    const fetchFromServer = async () => {
+    const fetchFromServer = async (isFirstFetch: boolean = false) => {
       if (isAdmin) {
         try {
           // Fetch Appointments
           const cloudAppointments = await apiService.fetchAppointments();
           if (cloudAppointments && cloudAppointments.length > 0) {
+            // If not first fetch, check for new appointments and notify
+            if (!isFirstFetch) {
+              const newApts = cloudAppointments.filter(ca => !appointments.some(a => a.id === ca.id));
+              if (newApts.length > 0) {
+                // Play sound for admin
+                try {
+                  const audio = new Audio(NOTIFICATION_SOUND);
+                  audio.play().catch(e => console.log("Audio notify failed", e));
+                } catch (e) { }
+
+                // Add notification for admin
+                const newNotifs: Notification[] = newApts.map(apt => ({
+                  id: `admin_new_${apt.id}_${Date.now()}`,
+                  title: 'New Appointment Request',
+                  message: `${apt.patientName} booked with ${apt.doctorName} for ${apt.date}.`,
+                  time: 'Just now',
+                  type: 'info',
+                  read: false
+                }));
+                setNotifications(prev => [...newNotifs, ...prev]);
+              }
+            }
             setAppointments(cloudAppointments);
           }
 
@@ -273,22 +295,22 @@ const App: React.FC = () => {
             setDoctors(cloudDoctors);
           }
 
-          console.log("Admin: Full Cloud sync successful.");
+          if (isFirstFetch) console.log("Admin: Initial Cloud sync successful.");
         } catch (e) {
           console.warn("Cloud sync failed, using local data.", e);
         }
       }
     };
 
-    fetchFromServer();
+    fetchFromServer(true);
 
-    // Optional: Refresh data every 30 seconds for Admin to see new patient requests
+    // Refresh data every 5 seconds for Admin to see new patient requests in real-time
     let interval: any;
     if (isAdmin) {
-      interval = setInterval(fetchFromServer, 30000);
+      interval = setInterval(() => fetchFromServer(false), 5000);
     }
     return () => clearInterval(interval);
-  }, [isAdmin]);
+  }, [isAdmin, appointments.length]); // Re-run if length changes or admin status changes
 
   // Sync to Cloud whenever data changes (Auto-save for Admin)
   useEffect(() => {
@@ -312,14 +334,23 @@ const App: React.FC = () => {
     setIsVitalsModalOpen(false);
   };
 
-  const handleBookAppointment = (newAppointment: Appointment) => {
+  const handleBookAppointment = async (newAppointment: Appointment) => {
     const appointmentWithUser: Appointment = {
       ...newAppointment,
       patientName: user?.name || "Guest User",
       patientMobile: user?.mobile || "",
       status: 'pending'
     };
+
+    // Update local state immediately
     setAppointments(prev => [appointmentWithUser, ...prev]);
+
+    // Push to cloud
+    try {
+      await apiService.bookAppointment(appointmentWithUser);
+    } catch (e) {
+      console.error("Failed to sync booking to cloud", e);
+    }
   };
 
   // Handler for AI Live Assistant Actions
@@ -340,7 +371,7 @@ const App: React.FC = () => {
     }, ...prev]);
   };
 
-  const handleAIBookAppointment = (data: { doctorName: string; specialty: string; date: string; time: string; type: 'video' | 'in-person' }) => {
+  const handleAIBookAppointment = async (data: { doctorName: string; specialty: string; date: string; time: string; type: 'video' | 'in-person' }) => {
     const newAppointment: Appointment = {
       id: Date.now().toString(),
       doctorName: data.doctorName,
@@ -354,7 +385,16 @@ const App: React.FC = () => {
       patientMobile: user?.mobile || "",
       meetLink: data.type === 'video' ? generateMeetLink() : undefined
     };
+
+    // Update local state
     setAppointments(prev => [newAppointment, ...prev]);
+
+    // Push to cloud
+    try {
+      await apiService.bookAppointment(newAppointment);
+    } catch (e) {
+      console.error("Failed to sync AI booking to cloud", e);
+    }
 
     setNotifications(prev => [{
       id: Date.now().toString(),
