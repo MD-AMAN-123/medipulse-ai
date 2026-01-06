@@ -955,24 +955,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, userImage, metrics, app
             // 1. Has Meeting Link
             // 2. Status is NOT cancelled or completed
             // 3. Either it is TODAY or it is PENDING (so admin/patient see it immediately)
-            if (apt.meetLink && apt.status !== 'cancelled' && apt.status !== 'completed') {
-              if (isToday) {
-                // Use the live updated currentTime
-                const now = currentTime;
-                const [h, m] = apt.time.split(':').map(Number);
-                const aptTime = new Date();
-                aptTime.setHours(h, m, 0, 0);
-
-                const diff = (aptTime.getTime() - now.getTime()) / 60000;
-
-                // Show if within 60 mins before or after
-                if (diff <= 60 && diff > -60) {
-                  showJoinButton = true;
-                }
-              } else if (apt.status === 'pending') {
-                // For pending appointments with a link (e.g. initial demo ones), show the link
-                showJoinButton = true;
-              }
+            if (apt.status === 'upcoming') {
+              showJoinButton = true;
+            } else if (apt.status === 'pending' && apt.meetLink) {
+              showJoinButton = true;
             }
 
             return (
@@ -1001,7 +987,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, userImage, metrics, app
                 {showJoinButton && (
                   <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 flex justify-end animate-fade-in">
                     <a
-                      href={apt.meetLink}
+                      href="https://meet.google.com/landing"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-500/20 hover:scale-105"
