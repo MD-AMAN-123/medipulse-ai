@@ -116,20 +116,20 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, userImage, metrics, app
 
   // Notification State
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [activeNotification, setActiveNotification] = useState<Notification | null>(null);
-  const notificationRef = useRef<HTMLDivElement>(null);
+  const [activeNotificationState, setActiveNotificationState] = useState<Notification | null>(null);
 
-  // Auto-switch notification modal if 'request' is replaced by 'confirmed'
-  useEffect(() => {
-    if (activeNotification && activeNotification.id.startsWith('request_')) {
-      const aptId = activeNotification.id.replace('request_', '');
+  // Derived notification: auto-upgrades 'request' to 'confirmed' if available in the list
+  const activeNotification = React.useMemo(() => {
+    if (activeNotificationState && activeNotificationState.id.startsWith('request_')) {
+      const aptId = activeNotificationState.id.replace('request_', '');
       const confirmedNotification = notifications.find(n => n.id === `confirmed_${aptId}`);
-
-      if (confirmedNotification) {
-        setActiveNotification(confirmedNotification);
-      }
+      if (confirmedNotification) return confirmedNotification;
     }
-  }, [notifications, activeNotification]);
+    return activeNotificationState;
+  }, [activeNotificationState, notifications]);
+
+  const setActiveNotification = setActiveNotificationState;
+  const notificationRef = useRef<HTMLDivElement>(null);
 
   // View State for expansion
   const [showAllAppointments, setShowAllAppointments] = useState(false);
