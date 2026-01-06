@@ -226,7 +226,7 @@ const App: React.FC = () => {
             const newNotifs: Notification[] = confirmedApts.map(apt => ({
               id: `patient_confirmed_${apt.id}_${Date.now()}`,
               title: 'Appointment Confirmed!',
-              message: `Your session with ${apt.doctorName} on ${apt.date} is accepted. Join here: ${apt.meetLink || 'Clinic'}`,
+              message: `Your session with ${apt.doctorName} on ${apt.date} is accepted. Meeting Link: ${apt.meetLink || 'Virtual Clinic'}`,
               time: 'Just now',
               type: 'success',
               read: false
@@ -542,7 +542,7 @@ const App: React.FC = () => {
         : `Your appointment with ${appointment.doctorName} on ${appointment.date} at ${appointment.time} has been declined.`;
 
       if (isAccepted && (meetLink || appointment.meetLink)) {
-        message += ` Join Link: ${meetLink || appointment.meetLink}`;
+        message += ` Meeting Link: ${meetLink || appointment.meetLink}`;
       }
 
       const notification: Notification = {

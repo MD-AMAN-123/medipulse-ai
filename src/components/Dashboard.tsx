@@ -622,7 +622,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, userImage, metrics, app
                             <h4 className={`text-sm font-bold ${!notification.read ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-300'}`}>{notification.title}</h4>
                             {!notification.read && <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>}
                           </div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-2 line-clamp-2">{notification.message}</p>
+                          <p className={`text-xs leading-relaxed mb-2 ${notification.message.includes('https://') ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-slate-500 dark:text-slate-400 line-clamp-2'}`}>
+                            {notification.message}
+                          </p>
                           <p className="text-[10px] text-slate-400 font-medium">{notification.time}</p>
                         </div>
                       </div>
