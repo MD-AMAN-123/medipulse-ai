@@ -966,7 +966,15 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, userImage, metrics, app
                 <div className="flex items-center gap-4 relative z-10">
                   <img src={apt.imageUrl} alt={apt.doctorName} className="w-12 h-12 rounded-full object-cover border border-slate-100 dark:border-slate-700" />
                   <div className="flex-1">
-                    <h4 className="font-bold text-slate-800 dark:text-white text-sm">{apt.doctorName}</h4>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <h4 className="font-bold text-slate-800 dark:text-white text-sm">{apt.doctorName}</h4>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-[0.05em] ${apt.status === 'upcoming' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                        apt.status === 'pending' ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' :
+                          'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                        }`}>
+                        {apt.status === 'upcoming' ? 'Confirmed' : apt.status}
+                      </span>
+                    </div>
                     <p className="text-teal-600 dark:text-teal-400 text-xs font-medium">{apt.specialty}</p>
                   </div>
                   <div className={`p-2 rounded-xl text-center min-w-[60px] ${showJoinButton ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-slate-50 dark:bg-slate-700'}`}>
