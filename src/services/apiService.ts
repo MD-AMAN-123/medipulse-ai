@@ -7,7 +7,11 @@ export const apiService = {
     async fetchAppointments(): Promise<Appointment[]> {
         try {
             const response = await axios.get(API_BASE);
-            return response.data;
+            if (Array.isArray(response.data)) {
+                return response.data;
+            }
+            console.error('API returned non-array for appointments:', response.data);
+            return [];
         } catch (error) {
             console.error('Failed to fetch appointments:', error);
             throw error;
@@ -17,7 +21,10 @@ export const apiService = {
     async fetchDoctors(): Promise<Doctor[]> {
         try {
             const response = await axios.get(`${API_BASE}?type=doctors`);
-            return response.data;
+            if (Array.isArray(response.data)) {
+                return response.data;
+            }
+            return [];
         } catch (error) {
             console.error('Failed to fetch doctors:', error);
             throw error;

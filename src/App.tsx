@@ -283,17 +283,11 @@ const App: React.FC = () => {
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
   const handleLogin = (userData: any) => {
-    const isNewAdmin = userData?.email === 'admin@medipulse.ai' || userData?.role === 'admin';
-
-    // Clear state before login change to ensure no "flicker" of old user data
-    // Admin especially must have a clean slate before fetching cloud data
-    setAppointments([]);
+    // Switch user context
     setUser(userData);
 
-    // Immediate fetch after state update
-    if (isNewAdmin) {
-      setTimeout(() => refreshAppointments(true), 100);
-    }
+    // Immediate fetch after context switch to refresh current user's actual cloud data
+    refreshAppointments(true);
   };
 
   const handleSaveVitals = (data: { heartRate: string; sleep: string; water: string }) => {
@@ -305,26 +299,33 @@ const App: React.FC = () => {
     setIsVitalsModalOpen(false);
   };
 
-  const handleBookAppointment = async (newAppointment: Appointment) => {
-    const appointmentWithUser: Appointment = {
-      ...newAppointment,
-      patientName: user?.name || "Guest User",
-      patientMobile: user?.mobile || "",
-      patientEmail: user?.email || "",
-      patientProfileImage: user?.picture || "",
-      status: 'pending'
+  const handleBookAppointment = async (appointment: Appointment) => {
+    // Enrich appointment with current user info for persistence and filtering
+    const enrichedAppointment: Appointment = {
+      ...appointment,
+      patientName: user?.name || 'Guest Patient',
+      patientEmail: user?.email,
+      patientMobile: user?.mobile,
+      patientProfileImage: user?.image
     };
 
+    const updatedAppointments = [enrichedAppointment, ...appointments];
+    setAppointments(updatedAppointments);
 
-    // Update local state immediately
-    setAppointments(prev => [appointmentWithUser, ...prev]);
+    setNotifications(prev => [{
+      id: Date.now().toString(),
+      title: 'Appointment Booked',
+      message: `Confirmed with ${appointment.doctorName} for ${appointment.date}.`,
+      time: 'Just now',
+      type: 'success',
+      read: false
+    }, ...prev]);
 
-    // Push to cloud with lock
-    isSyncingRef.current = true;
     try {
-      await apiService.bookAppointment(appointmentWithUser);
-    } catch (e) {
-      console.error("Failed to sync booking to cloud", e);
+      isSyncingRef.current = true;
+      await apiService.bookAppointment(enrichedAppointment);
+    } catch (error) {
+      console.error("Failed to sync new booking:", error);
     } finally {
       isSyncingRef.current = false;
     }
@@ -358,10 +359,10 @@ const App: React.FC = () => {
       type: data.type,
       status: 'pending',
       imageUrl: 'https://picsum.photos/100/100',
-      patientName: user?.name || "Guest User",
+      patientName: user?.name || "Guest Patient",
       patientMobile: user?.mobile || "",
       patientEmail: user?.email || "",
-      patientProfileImage: user?.picture || "",
+      patientProfileImage: user?.image || "https://picsum.photos/100/100",
       meetLink: data.type === 'video' ? generateMeetLink() : undefined
     };
 
@@ -371,9 +372,12 @@ const App: React.FC = () => {
 
     // Push to cloud
     try {
+      isSyncingRef.current = true;
       await apiService.bookAppointment(newAppointment);
     } catch (e) {
       console.error("Failed to sync AI booking to cloud", e);
+    } finally {
+      isSyncingRef.current = false;
     }
 
     setNotifications(prev => [{
@@ -423,18 +427,37 @@ const App: React.FC = () => {
     }, ...prev]);
   };
 
-  const handleAIUpdateAppointment = (data: { appointmentId: string; date?: string; time?: string; status?: string }) => {
+  const handleAIUpdateAppointment = async (data: { appointmentId: string; date?: string; time?: string; status?: string }) => {
+    let updatedObj: Partial<Appointment> | null = null;
+
     setAppointments(prev => prev.map(apt => {
       if (apt.id === data.appointmentId) {
-        return {
+        updatedObj = {
           ...apt,
           date: data.date || apt.date,
           time: data.time || apt.time,
           status: (data.status as any) || apt.status
         };
+        return updatedObj as Appointment;
       }
       return apt;
     }));
+
+    if (updatedObj) {
+      try {
+        isSyncingRef.current = true;
+        // Typescript needs to be sure id exists for the API
+        const validUpdate = updatedObj as Appointment;
+        await apiService.updateAppointment({
+          id: validUpdate.id,
+          ...validUpdate
+        });
+      } catch (e) {
+        console.error("AI Sync update failed", e);
+      } finally {
+        isSyncingRef.current = false;
+      }
+    }
 
     setNotifications(prev => [{
       id: Date.now().toString(),
@@ -514,9 +537,12 @@ const App: React.FC = () => {
 
     // Sync to cloud
     try {
+      isSyncingRef.current = true;
       await apiService.deleteAppointment(id);
     } catch (e) {
       console.error("Failed to delete appointment on server", e);
+    } finally {
+      isSyncingRef.current = false;
     }
 
     setNotifications(prev => [{

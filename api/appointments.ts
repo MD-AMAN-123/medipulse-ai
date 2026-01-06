@@ -9,8 +9,16 @@ const DOCTORS_FILE = path.join(DATA_DIR, 'doctors.json');
 
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+    try {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+    } catch (e) {
+        console.warn("Failed to create data directory (likely read-only filesystem)", e);
+    }
 }
+
+// In-memory fallback for Vercel/Serverless environments where filesystem is ephemeral
+let inMemoryAppointments: any[] | null = null;
+let inMemoryDoctors: any[] | null = null;
 
 // Helper to read data
 const readData = (filePath: string, defaultData: any[]) => {
@@ -113,9 +121,13 @@ export default async function handler(
         return;
     }
 
-    // Load data from files on each request for persistence
-    let appointmentsStore = readData(APPOINTMENTS_FILE, initialAppointments);
-    let doctorsStore = readData(DOCTORS_FILE, initialDoctors);
+    // Load data from files on each request for persistence, with in-memory fallback
+    let appointmentsStore = inMemoryAppointments || readData(APPOINTMENTS_FILE, initialAppointments);
+    let doctorsStore = inMemoryDoctors || readData(DOCTORS_FILE, initialDoctors);
+
+    // Ensure we sync back to memory if we just loaded from file
+    if (!inMemoryAppointments) inMemoryAppointments = appointmentsStore;
+    if (!inMemoryDoctors) inMemoryDoctors = doctorsStore;
 
     if (req.method === 'GET') {
         const { type } = req.query;
@@ -130,6 +142,7 @@ export default async function handler(
             const exists = appointmentsStore.some((a: any) => a.id === appointment.id);
             if (!exists) {
                 appointmentsStore = [appointment, ...appointmentsStore];
+                inMemoryAppointments = appointmentsStore;
                 writeData(APPOINTMENTS_FILE, appointmentsStore);
             }
             return res.status(200).json({ success: true, appointments: appointmentsStore });
@@ -139,6 +152,7 @@ export default async function handler(
             appointmentsStore = appointmentsStore.map((a: any) =>
                 a.id === appointment.id ? { ...a, ...appointment } : a
             );
+            inMemoryAppointments = appointmentsStore;
             writeData(APPOINTMENTS_FILE, appointmentsStore);
             return res.status(200).json({ success: true, appointments: appointmentsStore });
         }
@@ -146,13 +160,16 @@ export default async function handler(
         if (action === 'delete' && req.body.appointmentId) {
             const id = req.body.appointmentId;
             appointmentsStore = appointmentsStore.filter((a: any) => a.id !== id);
+            inMemoryAppointments = appointmentsStore;
             writeData(APPOINTMENTS_FILE, appointmentsStore);
             return res.status(200).json({ success: true, appointments: appointmentsStore });
         }
 
-        // Broad sync for doctors only (appointments sync removed to prevent race conditions)
+        // Broad sync for doctors only
         if (doctors && Array.isArray(doctors)) {
-            writeData(DOCTORS_FILE, doctors);
+            doctorsStore = doctors;
+            inMemoryDoctors = doctorsStore;
+            writeData(DOCTORS_FILE, doctorsStore);
         }
         return res.status(200).json({ success: true, message: "Action completed successfully" });
     }
