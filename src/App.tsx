@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, MessageSquare, CheckCircle, Crown, Edit2, Camera, Sun, Moon, Heart, Activity, LayoutGrid, ChevronRight, LogOut, Shield, Mic } from 'lucide-react';
+import { Plus, MessageSquare, CheckCircle, Crown, Edit2, Camera, Sun, Moon, Heart, Activity, LayoutGrid, ChevronRight, LogOut, Shield, Mic, User } from 'lucide-react';
 import { AppView, HealthMetric, Appointment, Notification, Doctor } from './types';
 import Dashboard from './components/Dashboard';
 import AiChat from './components/AiChat';
@@ -804,8 +804,8 @@ const App: React.FC = () => {
                 )}
                 {!user?.mobile && <div className="mb-8"></div>}
 
-                {/* Navigation Menu */}
-                <div className="w-full max-w-xs space-y-3 mb-8">
+                {/* Navigation Menu - Hide on Desktop as we have Sidebar */}
+                <div className="w-full max-w-xs space-y-3 mb-8 md:hidden">
                   <button
                     onClick={() => setActiveTab(AppView.DASHBOARD)}
                     className="w-full flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-200 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-teal-200 dark:hover:border-teal-900 transition-all shadow-sm group"
@@ -964,6 +964,16 @@ const App: React.FC = () => {
             Appointments
           </button>
 
+          <button
+            onClick={() => setActiveTab(AppView.PROFILE)}
+            className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-3 ${activeTab === AppView.PROFILE ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+          >
+            <div className={`p-1.5 rounded-lg ${activeTab === AppView.PROFILE ? 'bg-teal-100 dark:bg-teal-900/40' : 'bg-transparent'}`}>
+              <User size={18} />
+            </div>
+            Profile
+          </button>
+
           {isAdmin && (
             <button
               onClick={() => setActiveTab(AppView.ADMIN_PANEL)}
@@ -1033,37 +1043,39 @@ const App: React.FC = () => {
       />
 
       {/* Confirmation Dialog */}
-      {isUpgradeConfirmOpen && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center">
-            <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Crown className="text-indigo-600 dark:text-indigo-400" size={32} />
-            </div>
-            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Upgrade to Premium?</h3>
-            <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm">
-              Unlock unlimited AI analysis, video generation, and detailed health reports for just $19.99/mo.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setIsUpgradeConfirmOpen(false)}
-                className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setIsUpgradeConfirmOpen(false);
-                  setIsPaymentModalOpen(true);
-                }}
-                className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-colors"
-              >
-                Continue
-              </button>
+      {
+        isUpgradeConfirmOpen && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center">
+              <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Crown className="text-indigo-600 dark:text-indigo-400" size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Upgrade to Premium?</h3>
+              <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm">
+                Unlock unlimited AI analysis, video generation, and detailed health reports for just $19.99/mo.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setIsUpgradeConfirmOpen(false)}
+                  className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setIsUpgradeConfirmOpen(false);
+                    setIsPaymentModalOpen(true);
+                  }}
+                  className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-colors"
+                >
+                  Continue
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
 
